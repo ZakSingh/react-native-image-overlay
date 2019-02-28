@@ -7,12 +7,28 @@ import {
   Text,
   View,
   Image,
-  ViewPropTypes
+  ViewPropTypes,
+  Animated
 } from "react-native";
 
 const { width } = Dimensions.get("window");
+const AnimatedImage = Animated.createAnimatedComponent(ImageBackground);
 
 export default class ImageOverlay extends Component {
+  thumbnailAnimated = new Animated.Value(0);
+  imageAnimated = new Animated.Value(0);
+  handleThumbnailLoad = () => {
+    Animated.timing(this.thumbnailAnimated, {
+      toValue: 1
+    }).start();
+  };
+
+  onImageLoad = () => {
+    Animated.timing(this.imageAnimated, {
+      toValue: 1
+    }).start();
+  };
+
   render() {
     const {
       blurRadius,
@@ -26,6 +42,7 @@ export default class ImageOverlay extends Component {
       source,
       title,
       titleStyle,
+      thumbnailSource,
       ...props
     } = this.props;
 
@@ -39,30 +56,65 @@ export default class ImageOverlay extends Component {
     }
 
     return (
-      <ImageBackground
-        source={source}
-        style={[
-          styles.image,
-          {
-            borderRadius: rounded,
-            height: height,
-            justifyContent: justifyContent
-          },
-          containerStyle
-        ]}
-        blurRadius={blurRadius}
-      >
-        <View
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: overlayColor,
-            opacity: overlayAlpha
-          }}
-        />
-        {!children &&
-          title && <Text style={[styles.title, titleStyle]}>{title}</Text>}
-        {children}
-      </ImageBackground>
+      <View>
+        <AnimatedImage
+          source={thumbnailSource}
+          style={[
+            styles.image,
+            {
+              borderRadius: rounded,
+              height: height,
+              justifyContent: justifyContent,
+              opacity: this.thumbnailAnimated
+            },
+            containerStyle
+          ]}
+          blurRadius={1}
+          resizeMode="cover"
+          onLoad={this.handleThumbnailLoad}
+        >
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: overlayColor,
+              opacity: overlayAlpha / 2
+            }}
+          />
+          {!children && title && (
+            <Text style={[styles.title, titleStyle]}>{title}</Text>
+          )}
+          {children}
+        </AnimatedImage>
+        <AnimatedImage
+          source={source}
+          style={[
+            styles.image,
+            {
+              borderRadius: rounded,
+              height: height,
+              justifyContent: justifyContent,
+              opacity: this.imageAnimated
+            },
+            containerStyle,
+            styles.imageOverlay
+          ]}
+          blurRadius={blurRadius}
+          resizeMode="cover"
+          onLoad={this.onImageLoad}
+        >
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: overlayColor,
+              opacity: overlayAlpha / 2
+            }}
+          />
+          {!children && title && (
+            <Text style={[styles.title, titleStyle]}>{title}</Text>
+          )}
+          {children}
+        </AnimatedImage>
+      </View>
     );
   }
 }
@@ -78,12 +130,20 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontSize: 16
+  },
+  imageOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0
   }
 });
 
 ImageOverlay.propTypes = {
   rounded: PropTypes.number,
   source: Image.propTypes.source,
+  thumbnailSource: Image.propTypes.source,
   height: PropTypes.number,
   title: PropTypes.string,
   titleStyle: Text.propTypes.style,
